@@ -1,0 +1,170 @@
+var SVGvas = function() {
+
+  var
+    ns = 'http://www.w3.org/2000/svg',
+    doc = document.createElementNS(ns, 'svg'),
+    el,
+    shadows,
+    coordinates = [];
+
+  doc.setAttribute('xmlns', ns);
+  doc.setAttribute('version', 1.1);
+
+  var canvas = {
+    style: {}
+  };
+
+  canvas.getContext = function(type) {
+    if (type === '2d') {
+      return context;
+    }
+  };
+
+  canvas.toDataURL = function() {
+    var svg = '<?xml version="1.0" standalone="no"?>'+
+      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'+
+      canvas.getSVGDocument().outerHTML;
+    return 'data:image/svg+xml;utf8,'+ encodeURIComponent(svg);
+  };
+
+  canvas.getSVGDocument = function() {
+//  viewBox= [min.x, min.y, width, height].join(' ')
+    var
+      w = (canvas.width  || 1),
+      h = (canvas.height || 1);
+
+    doc.setAttribute('width', w);
+    doc.setAttribute('height', h);
+    doc.setAttribute('viewBox', '0 0 '+ w +' '+ h);
+
+    return doc;
+  };
+
+  var context = {};
+
+  context.canvas = canvas;
+
+  context.arc = function(x, y, r, start, end, clockwise) {};
+
+  context.clearRect = function() {
+    while (doc.removeChild(doc.firstChild));
+  };
+
+  context.beginPath = function() {
+    el = document.createElementNS(ns, 'path');
+    coordinates = [];
+  };
+
+  context.closePath = function() {
+    if (coordinates.length) {
+      coordinates.push('z');
+      el.setAttribute('d', coordinates.join(' '));
+      doc.appendChild(el);
+    }
+  };
+
+  context.moveTo = function(x, y) {
+    coordinates.push('M', x, y);
+  };
+
+  context.lineTo = function(x, y) {
+		coordinates.push('L', x, y);
+  };
+
+  context.stroke = function() {
+    context.lineCap     && el.setAttribute('stroke-linecap',  context.lineCap);
+    context.lineJoin    && el.setAttribute('stroke-linejoin', context.lineJoin);
+    context.strokeStyle && el.setAttribute('stroke',          context.strokeStyle);
+    context.lineWidth   && el.setAttribute('stroke-width',    context.lineWidth);
+//  context.strokeStyle && (style['stroke-opacity'] = context.strokeStyle);
+//  style += ('stroke-dasharray'] = options.dashArray;
+  };
+
+  context.fill = function() {
+//    context.shadowBlur = null;
+//    context.shadowColor = null;
+
+    if (!context.shadowBlur) {
+      shadows = null;
+    } else {
+      if (!shadows) {
+        var filter = document.createElementNS(ns, 'filter');
+        filter.setAttribute('id', 1);
+        filter.setAttribute('width', '150%');
+        filter.setAttribute('height', '150%');
+
+        var offset = document.createElementNS(ns, 'feOffset');
+        offset.setAttribute('result', 'offOut');
+        offset.setAttribute('in', 'SourceAlpha');
+//        offset.setAttribute('dx', 0);
+//        offset.setAttribute('dy', 0);
+        filter.appendChild(offset);
+
+        var blur = document.createElementNS(ns, 'feGaussianBlur');
+        blur.setAttribute('result', 'blurOut');
+        blur.setAttribute('in', 'offOut');
+        blur.setAttribute('stdDeviation', context.shadowBlur || 0);
+        filter.appendChild(blur);
+
+        var blend = document.createElementNS(ns, 'feBlend');
+        blend.setAttribute('in', 'SourceGraphic');
+        blend.setAttribute('in2', 'blurOut');
+        blend.setAttribute('mode', 'normal');
+        filter.appendChild(blend);
+
+/*
+<filter id="drop-shadow">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="2.2"/>
+  <feOffset dx="12" dy="12" result="offsetblur"/>
+  <feFlood flood-color="rgba(0,0,0,0.5)"/>
+  <feComposite in2="offsetblur" operator="in"/>
+  <feMerge>
+    <feMergeNode/>
+  <feMergeNode in="SourceGraphic"/>
+  </feMerge>
+</filter>
+*/
+        doc.appendChild(filter);
+
+        shadows = document.createElementNS(ns, 'g');
+        shadows.setAttribute('filter', 'url(#1)');
+        doc.appendChild(shadows);
+      }
+
+      //shadows.appendChild(el);
+    }
+
+		context.fillStyle && el.setAttribute('fill', context.fillStyle);
+//  context.fillStyle && el.setAttribute('fill-opacity', context.fillStyle);
+  };
+
+  context.drawImage = function(image, x, y) {
+    var svg, g;
+    if (image.getSVGDocument && (svg = image.getSVGDocument())) {
+      g = document.createElementNS(ns, 'g');
+      for (var i = 0, il = svg.childNodes.length; i < il; i++) {
+        g.appendChild(svg.childNodes[i].cloneNode(true));
+      }
+      doc.appendChild(g);
+    }
+  };
+
+  context.arc = function() {};
+  context.bezierCurveTo = function() {};
+  context.clearRect = function() {};
+  context.getImageData = function() {};
+  context.putImageData = function() {};
+
+  context.fillStyle = null;
+  context.globalCompositeOperation = null;
+  context.lineCap = null;
+  context.lineJoin = null;
+  context.lineWidth = null;
+  context.mozImageSmoothingEnabled = null;
+  context.shadowBlur = null;
+  context.shadowColor = null;
+  context.strokeStyle = null;
+  context.webkitImageSmoothingEnabled = null;
+
+  return canvas;
+};
